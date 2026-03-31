@@ -116,7 +116,7 @@ Transaction confirmation showing successful XLM transfer on the Stellar Testnet.
 ### Successful Smart Contract Creation
 Successful creating of a smart contract.
 
-![Successful Transaction](./public/contact.png)
+![Successful Transaction](./public/contract.png)
 
 ---
 
