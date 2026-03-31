@@ -11,6 +11,12 @@
 # production
 /build
 
+# Soroban contract build artifacts
+soroban/target/
+soroban/.soroban/
+soroban/Cargo.lock
+*.wasm
+
 # misc
 .DS_Store
 .env.local

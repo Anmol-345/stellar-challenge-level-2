@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { TRANSACTION_STATUS, pollTransactionStatus, clearTransactionTracking } from '../lib/transactionTracker';
+import { recordBatchPayments, isSorobanReady } from '../lib/sorobanClient';
 
 /**
  * TransactionStatus Component
  * Displays real-time transaction tracking with status updates and recipient details
+ * Integrates Soroban for on-chain payment recording
  */
 const TransactionStatus = ({ 
   transactionHash, 
@@ -15,6 +17,11 @@ const TransactionStatus = ({
   const [status, setStatus] = useState(TRANSACTION_STATUS.SUBMITTED);
   const [pollingAttempts, setPollingAttempts] = useState(0);
   const [isPolling, setIsPolling] = useState(true);
+  
+  // Soroban on-chain recording state
+  const [onChainStatus, setOnChainStatus] = useState('idle'); // idle, recording, success, error
+  const [onChainMessage, setOnChainMessage] = useState('');
+  const sorobanReady = isSorobanReady();
 
   // Start polling on mount
   useEffect(() => {
@@ -38,6 +45,38 @@ const TransactionStatus = ({
 
     startPolling();
   }, [transactionHash]);
+
+  // Record payment on-chain when confirmed (Soroban integration)
+  useEffect(() => {
+    if (status === TRANSACTION_STATUS.CONFIRMED && sorobanReady && onChainStatus === 'idle') {
+      recordPaymentOnChain();
+    }
+  }, [status, sorobanReady, onChainStatus]);
+
+  /**
+   * Record payment in Soroban contract
+   */
+  const recordPaymentOnChain = async () => {
+    try {
+      setOnChainStatus('recording');
+      setOnChainMessage('Recording on-chain...');
+
+      const result = await recordBatchPayments(
+        senderAddress,
+        recipients,
+        transactionHash
+      );
+
+      setOnChainStatus('success');
+      setOnChainMessage(`${result.totalRecorded} payment${result.totalRecorded > 1 ? 's' : ''} recorded on-chain`);
+      
+      console.log('[Soroban] Payment recorded successfully:', result);
+    } catch (error) {
+      console.error('[Soroban] Error recording payment:', error);
+      setOnChainStatus('error');
+      setOnChainMessage('Failed to record on-chain (non-critical)');
+    }
+  };
 
   // Status color and icon mapping
   const getStatusStyles = () => {
@@ -119,6 +158,32 @@ const TransactionStatus = ({
             {status === TRANSACTION_STATUS.PENDING && 'Waiting to be submitted'}
             {status === TRANSACTION_STATUS.FAILED && 'Something went wrong'}
           </p>
+
+          {/* Soroban On-Chain Recording Status */}
+          {sorobanReady && status === TRANSACTION_STATUS.CONFIRMED && (
+            <div className={`mb-6 p-4 rounded-lg border ${
+              onChainStatus === 'success'
+                ? 'bg-purple-500/10 border-purple-500/50'
+                : onChainStatus === 'error'
+                ? 'bg-orange-500/10 border-orange-500/50'
+                : 'bg-indigo-500/10 border-indigo-500/50'
+            }`}>
+              <div className="flex items-center gap-2 mb-1">
+                <span className={`text-sm font-semibold ${
+                  onChainStatus === 'success'
+                    ? 'text-purple-400'
+                    : onChainStatus === 'error'
+                    ? 'text-orange-400'
+                    : 'text-indigo-400'
+                }`}>
+                  {onChainStatus === 'recording' && '⛓️ On-Chain Recording'}
+                  {onChainStatus === 'success' && '⛓️ On-Chain Verified'}
+                  {onChainStatus === 'error' && '⚠ On-Chain Record Failed'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-300">{onChainMessage}</p>
+            </div>
+          )}
 
           {/* Transaction Hash */}
           <div className="bg-slate-700/50 rounded-lg p-4 mb-6 border border-slate-600">

@@ -113,6 +113,11 @@ Transaction confirmation showing successful XLM transfer on the Stellar Testnet.
 
 ![Successful Transaction](./public/successful-transaction.png)
 
+### Successful Smart Contract Creation
+Successful creating of a smart contract.
+
+![Successful Transaction](./public/contact.png)
+
 ---
 
 # TRANSACTION PROOF
@@ -120,6 +125,8 @@ Transaction confirmation showing successful XLM transfer on the Stellar Testnet.
 ```
 Transaction Id : 8a5df59a6e73dbc1328f34119c5dfc270ff84e918803b4837be15a02488199b1
 Processed      : 2026-03-31 18:51:58 UTC
+
+Smart Contract : CBE67XZJFNTEOTBORIJERGGZAB3ATNOWBASLXT6IP23ESGPTFRWQ7TLG
 
 ```
 
@@ -333,12 +340,71 @@ This application is configured for the **Stellar Test Network (Testnet)**.
 - ✅ Try again in a few moments (network may be experiencing load)
 - ✅ Check Stellar network status page
 
+## ⛓️ Soroban Smart Contract Integration
+
+This app integrates with a Soroban smart contract to record payments on-chain.
+
+### Features
+- ✅ Automatic on-chain payment recording after transaction confirmation
+- ✅ Event emission for each payment (sender, recipient, amount)
+- ✅ Real-time on-chain status indicator
+- ✅ Non-blocking: contract failures don't affect payment
+
+### Setup
+
+**1. Deploy Contract**
+```bash
+cd soroban
+cargo build --target wasm32-unknown-unknown --release
+soroban contract build
+```
+
+See [SOROBAN_DEPLOYMENT.md](SOROBAN_DEPLOYMENT.md) for full deployment steps.
+
+**2. Configure Contract ID**
+
+After deployment, update `src/config/soroban.js`:
+```javascript
+export const SOROBAN_CONFIG = {
+  CONTRACT_ID: "YOUR_DEPLOYED_CONTRACT_ID", // Set this
+};
+```
+
+**3. How It Works**
+
+When you send XLM:
+1. Transaction submitted to Stellar Network
+2. App polls for confirmation
+3. Once confirmed: ✅ On-chain recording starts (Soroban)
+4. Contract emits "payment_recorded" event
+5. UI shows "On-Chain Verified" status
+
+### Contract Details
+
+- **Method**: `record_payment(sender, recipient, amount, tx_hash)`
+- **Storage**: Payment records with transaction hash
+- **Events**: emits "payment_recorded" with sender, recipient, amount
+- **Network**: Stellar Testnet
+- **Language**: Rust (Soroban SDK 21.3.0)
+
+### Troubleshooting Soroban
+
+**"Soroban contract not deployed" error**
+- ✅ Deploy contract using steps in [SOROBAN_DEPLOYMENT.md](SOROBAN_DEPLOYMENT.md)
+- ✅ Update CONTRACT_ID in `src/config/soroban.js`
+
+**"On-Chain Record Failed" message**
+- This is non-blocking - your payment still went through!
+- Only affects on-chain recording feature
+- Check contract deployment or RPC connection
+
 ---
 
 ## 📚 Resources
 
 - **Stellar Documentation**: https://developers.stellar.org/
 - **Freighter Docs**: https://www.freighter.app/
+- **Soroban Guide**: https://developers.stellar.org/docs/build/smart-contracts
 - **Horizon API**: https://developers.stellar.org/docs/data/horizon
 - **Tailwind CSS**: https://tailwindcss.com/docs
 - **React Docs**: https://react.dev/
